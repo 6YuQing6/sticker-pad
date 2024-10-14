@@ -18,6 +18,16 @@ let x = 0;
 let y = 0;
 const context = canvas.getContext("2d");
 
+const clearButton = document.createElement("button");
+clearButton.innerHTML = "clear";
+app.append(clearButton);
+
+clearButton.addEventListener("click", () => {
+  if (context) {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+  }
+});
+
 // Add the event listeners for mousedown, mousemove, and mouseup
 // https://developer.mozilla.org/en-US/docs/Web/API/Element/mousemove_event
 canvas.addEventListener("mousedown", (e) => {
