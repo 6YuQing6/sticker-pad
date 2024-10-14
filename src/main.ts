@@ -23,9 +23,10 @@ clearButton.innerHTML = "clear";
 app.append(clearButton);
 
 clearButton.addEventListener("click", () => {
-  if (context) {
-    context.clearRect(0, 0, canvas.width, canvas.height);
+  if (!context) {
+    return;
   }
+  context.clearRect(0, 0, canvas.width, canvas.height);
 });
 
 // Add the event listeners for mousedown, mousemove, and mouseup

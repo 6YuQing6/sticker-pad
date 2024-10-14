@@ -34,12 +34,15 @@ h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
-
 #app {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .logo {
@@ -99,4 +102,5 @@ canvas {
   border: #213547 1px solid;
   border-radius: 5%;
   filter: drop-shadow(0 3px 0.3rem oklch(75.91% 0.1095 87.67));
+  margin: 1em;
 }
