@@ -1,12 +1,11 @@
 import "./style.css";
 
-const APP_NAME = "Sticky Pad";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
-document.title = APP_NAME;
+document.title = "Sticky Pad";
 
 const title = document.createElement("h1");
-title.innerHTML = APP_NAME;
+title.innerHTML = "Sticky Pad";
 app.append(title);
 
 const canvas = document.createElement("canvas");
