@@ -1,7 +1,6 @@
 import "./style.css";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
-
 document.title = "Sticky Pad";
 
 const title = document.createElement("h1");
@@ -21,112 +20,103 @@ interface Point {
 let lines: Point[][] = [];
 let currentLine: Point[] = [];
 let redoStack: Point[][] = [];
-
 let isDrawing = false;
 let lastX = 0;
 let lastY = 0;
 const context = canvas.getContext("2d");
 
-const buttonDiv = document.createElement("div");
-app.append(buttonDiv);
+const buttonContainer = document.createElement("div");
+app.append(buttonContainer);
 
-const clearButton = document.createElement("button");
-clearButton.innerHTML = "clear";
-buttonDiv.append(clearButton);
+createButton("clear", buttonContainer, clearCanvas);
+createButton("undo", buttonContainer, undoLastLine);
+createButton("redo", buttonContainer, redoLastLine);
 
-const undoButton = document.createElement("button");
-undoButton.innerHTML = "undo";
-buttonDiv.append(undoButton);
+canvas.addEventListener("mousedown", startDrawing);
+canvas.addEventListener("mousemove", draw);
+document.addEventListener("mouseup", stopDrawing);
+canvas.addEventListener("drawing-changed", redrawCanvas);
 
-undoButton.addEventListener("click", () => {
-  const line = lines.pop();
-  if (line) {
-    redoStack.push(line);
-    canvas.dispatchEvent(new Event("drawing-changed"));
-  }
-});
+function createButton(
+  label: string,
+  container: HTMLElement,
+  onClick: () => void
+) {
+  const button = document.createElement("button");
+  button.innerHTML = label;
+  button.addEventListener("click", onClick);
+  container.append(button);
+  return button;
+}
 
-const redoButton = document.createElement("button");
-redoButton.innerHTML = "redo";
-buttonDiv.append(redoButton);
-
-redoButton.addEventListener("click", () => {
-  const line = redoStack.pop();
-  if (line) {
-    lines.push(line);
-    canvas.dispatchEvent(new Event("drawing-changed"));
-  }
-});
-
-clearButton.addEventListener("click", () => {
-  if (!context) return;
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  lines = [];
-  redoStack = [];
-  canvas.dispatchEvent(new Event("drawing-changed"));
-});
-
-// Add the event listeners for mousedown, mousemove, and mouseup
-canvas.addEventListener("mousedown", (e) => {
+function startDrawing(e: MouseEvent) {
   lastX = e.offsetX;
   lastY = e.offsetY;
   isDrawing = true;
   redoStack = [];
   currentLine = [{ x: lastX, y: lastY }];
-});
+}
 
-canvas.addEventListener("mousemove", (e) => {
-  if (isDrawing) {
-    const newX = e.offsetX;
-    const newY = e.offsetY;
-    currentLine.push({ x: newX, y: newY });
-    canvas.dispatchEvent(new Event("drawing-changed"));
-  }
-});
+function draw(e: MouseEvent) {
+  if (!isDrawing) return;
+  const newX = e.offsetX;
+  const newY = e.offsetY;
+  currentLine.push({ x: newX, y: newY });
+  canvas.dispatchEvent(new Event("drawing-changed"));
+}
 
-canvas.addEventListener("drawing-changed", () => {
+function stopDrawing() {
+  if (!isDrawing) return;
+  lines.push(currentLine);
+  currentLine = [];
+  isDrawing = false;
+  canvas.dispatchEvent(new Event("drawing-changed"));
+}
+
+function clearCanvas() {
   if (!context) return;
   context.clearRect(0, 0, canvas.width, canvas.height);
-  lines.forEach((line) => {
-    for (let i = 1; i < line.length; i++) {
-      drawLine(context, line[i - 1].x, line[i - 1].y, line[i].x, line[i].y);
-    }
-  });
-  if (currentLine.length > 1) {
-    for (let i = 1; i < currentLine.length; i++) {
-      drawLine(
-        context,
-        currentLine[i - 1].x,
-        currentLine[i - 1].y,
-        currentLine[i].x,
-        currentLine[i].y
-      );
-    }
-  }
-});
+  lines = [];
+  redoStack = [];
+  canvas.dispatchEvent(new Event("drawing-changed"));
+}
 
-document.addEventListener("mouseup", () => {
-  if (isDrawing) {
-    lines.push(currentLine);
-    currentLine = [];
-    isDrawing = false;
+function undoLastLine() {
+  const line = lines.pop();
+  if (line) {
+    redoStack.push(line);
     canvas.dispatchEvent(new Event("drawing-changed"));
   }
-});
+}
 
-function drawLine(
-  context: CanvasRenderingContext2D | null,
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number
-) {
+function redoLastLine() {
+  const line = redoStack.pop();
+  if (line) {
+    lines.push(line);
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+}
+
+function redrawCanvas() {
   if (!context) return;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  lines.forEach((line) => drawLineSegments(line));
+  drawLineSegments(currentLine);
+}
+
+function drawLineSegments(line: Point[]) {
+  if (!context) return;
+  for (let i = 1; i < line.length; i++) {
+    drawLine(context, line[i - 1], line[i]);
+  }
+}
+
+function drawLine(context: CanvasRenderingContext2D, start: Point, end: Point) {
   context.beginPath();
   context.strokeStyle = "black";
   context.lineWidth = 1;
-  context.moveTo(x1, y1);
-  context.lineTo(x2, y2);
+  context.moveTo(start.x, start.y);
+  context.lineTo(end.x, end.y);
   context.stroke();
   context.closePath();
 }
