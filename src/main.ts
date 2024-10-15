@@ -13,6 +13,14 @@ canvas.width = 256;
 canvas.height = 256;
 app.append(canvas);
 
+interface Point {
+  x: number;
+  y: number;
+}
+
+let points: Point[][] = [];
+let currentLine: Point[] = [];
+
 let isDrawing = false;
 let x = 0;
 let y = 0;
@@ -27,6 +35,7 @@ clearButton.addEventListener("click", () => {
     return;
   }
   context.clearRect(0, 0, canvas.width, canvas.height);
+  points = [];
 });
 
 // Add the event listeners for mousedown, mousemove, and mouseup
@@ -35,21 +44,39 @@ canvas.addEventListener("mousedown", (e) => {
   x = e.offsetX;
   y = e.offsetY;
   isDrawing = true;
+  currentLine.push({ x, y });
 });
 
 canvas.addEventListener("mousemove", (e) => {
   if (isDrawing) {
-    drawLine(context, x, y, e.offsetX, e.offsetY);
+    // drawLine(context, x, y, e.offsetX, e.offsetY);
     x = e.offsetX;
     y = e.offsetY;
+    currentLine.push({ x, y });
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+});
+
+canvas.addEventListener("drawing-changed", () => {
+  if (!context) {
+    return;
+  }
+  if (currentLine.length > 2) {
+    drawLine(
+      context,
+      currentLine[currentLine.length - 2].x,
+      currentLine[currentLine.length - 2].y,
+      currentLine[currentLine.length - 1].x,
+      currentLine[currentLine.length - 1].y
+    );
   }
 });
 
 document.addEventListener("mouseup", (e) => {
   if (isDrawing) {
-    drawLine(context, x, y, e.offsetX, e.offsetY);
-    x = 0;
-    y = 0;
+    console.log(currentLine);
+    points.push(currentLine);
+    currentLine = [];
     isDrawing = false;
   }
 });
