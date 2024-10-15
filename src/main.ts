@@ -49,11 +49,10 @@ canvas.addEventListener("mousedown", (e) => {
 
 canvas.addEventListener("mousemove", (e) => {
   if (isDrawing) {
-    // drawLine(context, x, y, e.offsetX, e.offsetY);
+    drawLine(context, x, y, e.offsetX, e.offsetY);
     x = e.offsetX;
     y = e.offsetY;
     currentLine.push({ x, y });
-    canvas.dispatchEvent(new Event("drawing-changed"));
   }
 });
 
@@ -61,23 +60,40 @@ canvas.addEventListener("drawing-changed", () => {
   if (!context) {
     return;
   }
-  if (currentLine.length > 2) {
-    drawLine(
-      context,
-      currentLine[currentLine.length - 2].x,
-      currentLine[currentLine.length - 2].y,
-      currentLine[currentLine.length - 1].x,
-      currentLine[currentLine.length - 1].y
-    );
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  points.forEach((line) => {
+    for (let i = 1; i < line.length; i++) {
+      drawLine(context, line[i - 1].x, line[i - 1].y, line[i].x, line[i].y);
+    }
+  });
+  if (currentLine.length > 1) {
+    for (let i = 1; i < currentLine.length; i++) {
+      drawLine(
+        context,
+        currentLine[i - 1].x,
+        currentLine[i - 1].y,
+        currentLine[i].x,
+        currentLine[i].y
+      );
+    }
   }
+  // if (currentLine.length > 2) {
+  //   drawLine(
+  //     context,
+  //     currentLine[currentLine.length - 2].x,
+  //     currentLine[currentLine.length - 2].y,
+  //     currentLine[currentLine.length - 1].x,
+  //     currentLine[currentLine.length - 1].y
+  //   );
+  // }
 });
 
-document.addEventListener("mouseup", (e) => {
+document.addEventListener("mouseup", () => {
   if (isDrawing) {
-    console.log(currentLine);
     points.push(currentLine);
     currentLine = [];
     isDrawing = false;
+    canvas.dispatchEvent(new Event("drawing-changed"));
   }
 });
 
