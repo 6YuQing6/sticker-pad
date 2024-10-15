@@ -66,26 +66,6 @@ canvas.addEventListener("drawing-changed", () => {
       drawLine(context, line[i - 1].x, line[i - 1].y, line[i].x, line[i].y);
     }
   });
-  if (currentLine.length > 1) {
-    for (let i = 1; i < currentLine.length; i++) {
-      drawLine(
-        context,
-        currentLine[i - 1].x,
-        currentLine[i - 1].y,
-        currentLine[i].x,
-        currentLine[i].y
-      );
-    }
-  }
-  // if (currentLine.length > 2) {
-  //   drawLine(
-  //     context,
-  //     currentLine[currentLine.length - 2].x,
-  //     currentLine[currentLine.length - 2].y,
-  //     currentLine[currentLine.length - 1].x,
-  //     currentLine[currentLine.length - 1].y
-  //   );
-  // }
 });
 
 document.addEventListener("mouseup", () => {
