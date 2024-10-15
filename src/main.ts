@@ -36,23 +36,23 @@ clearButton.addEventListener("click", () => {
   }
   context.clearRect(0, 0, canvas.width, canvas.height);
   points = [];
+  canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 // Add the event listeners for mousedown, mousemove, and mouseup
-// https://developer.mozilla.org/en-US/docs/Web/API/Element/mousemove_event
 canvas.addEventListener("mousedown", (e) => {
   x = e.offsetX;
   y = e.offsetY;
   isDrawing = true;
-  currentLine.push({ x, y });
+  currentLine = [{ x, y }];
 });
 
 canvas.addEventListener("mousemove", (e) => {
   if (isDrawing) {
-    drawLine(context, x, y, e.offsetX, e.offsetY);
-    x = e.offsetX;
-    y = e.offsetY;
-    currentLine.push({ x, y });
+    const newX = e.offsetX;
+    const newY = e.offsetY;
+    currentLine.push({ x: newX, y: newY });
+    canvas.dispatchEvent(new Event("drawing-changed"));
   }
 });
 
@@ -66,6 +66,17 @@ canvas.addEventListener("drawing-changed", () => {
       drawLine(context, line[i - 1].x, line[i - 1].y, line[i].x, line[i].y);
     }
   });
+  if (currentLine.length > 1) {
+    for (let i = 1; i < currentLine.length; i++) {
+      drawLine(
+        context,
+        currentLine[i - 1].x,
+        currentLine[i - 1].y,
+        currentLine[i].x,
+        currentLine[i].y
+      );
+    }
+  }
 });
 
 document.addEventListener("mouseup", () => {
