@@ -26,9 +26,21 @@ let lastX = 0;
 let lastY = 0;
 const context = canvas.getContext("2d");
 
+const buttonDiv = document.createElement("div");
+app.append(buttonDiv);
+
 const clearButton = document.createElement("button");
 clearButton.innerHTML = "clear";
-app.append(clearButton);
+buttonDiv.append(clearButton);
+
+const undoButton = document.createElement("button");
+undoButton.innerHTML = "undo";
+buttonDiv.append(undoButton);
+
+undoButton.addEventListener("click", () => {
+  lines.pop();
+  canvas.dispatchEvent(new Event("drawing-changed"));
+});
 
 clearButton.addEventListener("click", () => {
   if (!context) return;
