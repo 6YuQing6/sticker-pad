@@ -20,6 +20,7 @@ interface Point {
 
 let lines: Point[][] = [];
 let currentLine: Point[] = [];
+let redoStack: Point[][] = [];
 
 let isDrawing = false;
 let lastX = 0;
@@ -38,14 +39,30 @@ undoButton.innerHTML = "undo";
 buttonDiv.append(undoButton);
 
 undoButton.addEventListener("click", () => {
-  lines.pop();
-  canvas.dispatchEvent(new Event("drawing-changed"));
+  const line = lines.pop();
+  if (line) {
+    redoStack.push(line);
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+});
+
+const redoButton = document.createElement("button");
+redoButton.innerHTML = "redo";
+buttonDiv.append(redoButton);
+
+redoButton.addEventListener("click", () => {
+  const line = redoStack.pop();
+  if (line) {
+    lines.push(line);
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
 });
 
 clearButton.addEventListener("click", () => {
   if (!context) return;
   context.clearRect(0, 0, canvas.width, canvas.height);
   lines = [];
+  redoStack = [];
   canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
@@ -54,6 +71,7 @@ canvas.addEventListener("mousedown", (e) => {
   lastX = e.offsetX;
   lastY = e.offsetY;
   isDrawing = true;
+  redoStack = [];
   currentLine = [{ x: lastX, y: lastY }];
 });
 
