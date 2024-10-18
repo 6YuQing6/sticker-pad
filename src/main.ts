@@ -44,8 +44,10 @@ interface Point {
 
 class Line implements Displayable {
   points: Point[];
-  constructor(x: number, y: number) {
+  thickness: number;
+  constructor(x: number, y: number, thickness: number) {
     this.points = [{ x, y }];
+    this.thickness = thickness;
   }
 
   display(context: CanvasRenderingContext2D) {
@@ -65,7 +67,7 @@ class Line implements Displayable {
   ) {
     context.beginPath();
     context.strokeStyle = "black";
-    context.lineWidth = 1;
+    context.lineWidth = this.thickness;
     context.moveTo(start.x, start.y);
     context.lineTo(end.x, end.y);
     context.stroke();
@@ -92,7 +94,7 @@ function startDrawing(e: MouseEvent) {
   lastY = e.offsetY;
   isDrawing = true;
   redoStack = [];
-  currentLine = new Line(lastX, lastY);
+  currentLine = new Line(lastX, lastY, lineThickness);
 }
 
 // canvas event listeners
@@ -152,15 +154,13 @@ function setThin() {
 }
 
 function setThick() {
-  lineThickness = 3;
+  lineThickness = 5;
   toggleButtonSelection(thickButton);
 }
 
 function toggleButtonSelection(selectedButton: HTMLButtonElement) {
   const buttons = buttonContainer.querySelectorAll("button");
   buttons.forEach((button) => {
-    button === selectedButton
-      ? (button.className = "selected")
-      : (button.className = "");
+    button.classList.toggle("selected", button === selectedButton);
   });
 }
