@@ -12,30 +12,12 @@ canvas.width = 256;
 canvas.height = 256;
 app.append(canvas);
 
-interface Point {
-  x: number;
-  y: number;
-}
-
-let lines: Point[][] = [];
-let currentLine: Point[] = [];
-let redoStack: Point[][] = [];
-let isDrawing = false;
-let lastX = 0;
-let lastY = 0;
-const context = canvas.getContext("2d");
-
 const buttonContainer = document.createElement("div");
 app.append(buttonContainer);
 
 createButton("clear", buttonContainer, clearCanvas);
 createButton("undo", buttonContainer, undoLastLine);
 createButton("redo", buttonContainer, redoLastLine);
-
-canvas.addEventListener("mousedown", startDrawing);
-canvas.addEventListener("mousemove", draw);
-document.addEventListener("mouseup", stopDrawing);
-canvas.addEventListener("drawing-changed", redrawCanvas);
 
 function createButton(
   label: string,
@@ -49,26 +31,78 @@ function createButton(
   return button;
 }
 
+interface Displayable {
+  display(context: CanvasRenderingContext2D): void;
+}
+interface Point {
+  x: number;
+  y: number;
+}
+
+class MarkerLine implements Displayable {
+  points: Point[];
+  constructor(x: number, y: number) {
+    this.points = [{ x, y }];
+  }
+
+  display(context: CanvasRenderingContext2D) {
+    for (let i = 1; i < this.points.length; i++) {
+      this.drawLine(context, this.points[i - 1], this.points[i]);
+    }
+  }
+
+  drag(x: number, y: number) {
+    this.points.push({ x, y });
+  }
+
+  private drawLine(
+    context: CanvasRenderingContext2D,
+    start: Point,
+    end: Point
+  ) {
+    context.beginPath();
+    context.strokeStyle = "black";
+    context.lineWidth = 1;
+    context.moveTo(start.x, start.y);
+    context.lineTo(end.x, end.y);
+    context.stroke();
+    context.closePath();
+  }
+}
+
+let lines: Displayable[] = [];
+let currentLine: MarkerLine | null = null;
+let redoStack: Displayable[] = [];
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+const context = canvas.getContext("2d");
+
+canvas.addEventListener("mousedown", startDrawing);
+canvas.addEventListener("mousemove", draw);
+document.addEventListener("mouseup", stopDrawing);
+canvas.addEventListener("drawing-changed", redrawCanvas);
+
 function startDrawing(e: MouseEvent) {
   lastX = e.offsetX;
   lastY = e.offsetY;
   isDrawing = true;
   redoStack = [];
-  currentLine = [{ x: lastX, y: lastY }];
+  currentLine = new MarkerLine(lastX, lastY);
 }
 
 function draw(e: MouseEvent) {
   if (!isDrawing) return;
   const newX = e.offsetX;
   const newY = e.offsetY;
-  currentLine.push({ x: newX, y: newY });
+  currentLine?.drag(newX, newY);
   canvas.dispatchEvent(new Event("drawing-changed"));
 }
 
 function stopDrawing() {
-  if (!isDrawing) return;
+  if (!isDrawing || !currentLine) return;
   lines.push(currentLine);
-  currentLine = [];
+  currentLine = null;
   isDrawing = false;
   canvas.dispatchEvent(new Event("drawing-changed"));
 }
@@ -100,23 +134,8 @@ function redoLastLine() {
 function redrawCanvas() {
   if (!context) return;
   context.clearRect(0, 0, canvas.width, canvas.height);
-  lines.forEach((line) => drawLineSegments(line));
-  drawLineSegments(currentLine);
-}
-
-function drawLineSegments(line: Point[]) {
-  if (!context) return;
-  for (let i = 1; i < line.length; i++) {
-    drawLine(context, line[i - 1], line[i]);
-  }
-}
-
-function drawLine(context: CanvasRenderingContext2D, start: Point, end: Point) {
-  context.beginPath();
-  context.strokeStyle = "black";
-  context.lineWidth = 1;
-  context.moveTo(start.x, start.y);
-  context.lineTo(end.x, end.y);
-  context.stroke();
-  context.closePath();
+  lines.forEach((line) => {
+    line.display(context);
+  });
+  currentLine?.display(context);
 }
