@@ -34,12 +34,13 @@ function createButton(
 interface Displayable {
   display(context: CanvasRenderingContext2D): void;
 }
+
 interface Point {
   x: number;
   y: number;
 }
 
-class MarkerLine implements Displayable {
+class Line implements Displayable {
   points: Point[];
   constructor(x: number, y: number) {
     this.points = [{ x, y }];
@@ -71,7 +72,7 @@ class MarkerLine implements Displayable {
 }
 
 let lines: Displayable[] = [];
-let currentLine: MarkerLine | null = null;
+let currentLine: Line | null = null;
 let redoStack: Displayable[] = [];
 let isDrawing = false;
 let lastX = 0;
@@ -88,7 +89,7 @@ function startDrawing(e: MouseEvent) {
   lastY = e.offsetY;
   isDrawing = true;
   redoStack = [];
-  currentLine = new MarkerLine(lastX, lastY);
+  currentLine = new Line(lastX, lastY);
 }
 
 function draw(e: MouseEvent) {
