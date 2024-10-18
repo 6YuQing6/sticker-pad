@@ -106,3 +106,9 @@ canvas {
   filter: drop-shadow(0 3px 0.3rem oklch(75.91% 0.1095 87.67));
   margin: 1em;
 }
+
+button.selected {
+  border-color: #646cff;
+  background-color: #646cff;
+  color: #ffffff;
+}

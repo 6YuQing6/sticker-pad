@@ -18,6 +18,8 @@ app.append(buttonContainer);
 createButton("clear", buttonContainer, clearCanvas);
 createButton("undo", buttonContainer, undoLastLine);
 createButton("redo", buttonContainer, redoLastLine);
+const thinButton = createButton("thin", buttonContainer, setThin);
+const thickButton = createButton("thick", buttonContainer, setThick);
 
 function createButton(
   label: string,
@@ -77,6 +79,7 @@ let redoStack: Displayable[] = [];
 let isDrawing = false;
 let lastX = 0;
 let lastY = 0;
+let lineThickness = 1;
 const context = canvas.getContext("2d");
 
 canvas.addEventListener("mousedown", startDrawing);
@@ -92,6 +95,7 @@ function startDrawing(e: MouseEvent) {
   currentLine = new Line(lastX, lastY);
 }
 
+// canvas event listeners
 function draw(e: MouseEvent) {
   if (!isDrawing) return;
   const newX = e.offsetX;
@@ -108,6 +112,16 @@ function stopDrawing() {
   canvas.dispatchEvent(new Event("drawing-changed"));
 }
 
+function redrawCanvas() {
+  if (!context) return;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  lines.forEach((line) => {
+    line.display(context);
+  });
+  currentLine?.display(context);
+}
+
+// button event listeners
 function clearCanvas() {
   if (!context) return;
   context.clearRect(0, 0, canvas.width, canvas.height);
@@ -132,11 +146,21 @@ function redoLastLine() {
   }
 }
 
-function redrawCanvas() {
-  if (!context) return;
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  lines.forEach((line) => {
-    line.display(context);
+function setThin() {
+  lineThickness = 1;
+  toggleButtonSelection(thinButton);
+}
+
+function setThick() {
+  lineThickness = 3;
+  toggleButtonSelection(thickButton);
+}
+
+function toggleButtonSelection(selectedButton: HTMLButtonElement) {
+  const buttons = buttonContainer.querySelectorAll("button");
+  buttons.forEach((button) => {
+    button === selectedButton
+      ? (button.className = "selected")
+      : (button.className = "");
   });
-  currentLine?.display(context);
 }
