@@ -87,6 +87,7 @@ const context = canvas.getContext("2d");
 
 canvas.addEventListener("mousedown", startDrawing);
 canvas.addEventListener("mousemove", draw);
+canvas.addEventListener("tool-moved", previewTool);
 document.addEventListener("mouseup", stopDrawing);
 canvas.addEventListener("drawing-changed", redrawCanvas);
 
@@ -99,8 +100,17 @@ function startDrawing(e: MouseEvent) {
 }
 
 // canvas event listeners
+
+function previewTool() {
+  console.log("tool moved but not drawing");
+  return;
+}
+
 function draw(e: MouseEvent) {
-  if (!isDrawing) return;
+  if (!isDrawing) {
+    canvas.dispatchEvent(new Event("tool-moved"));
+    return;
+  }
   const newX = e.offsetX;
   const newY = e.offsetY;
   currentLine?.drag(newX, newY);
