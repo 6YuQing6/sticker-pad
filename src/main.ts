@@ -45,15 +45,16 @@ interface Point {
 class Line implements Displayable {
   points: Point[];
   thickness: number;
-  constructor(x: number, y: number, thickness: number) {
-    this.points = [{ x, y }];
+  constructor(point: Point, thickness: number) {
+    this.points = [point];
     this.thickness = thickness;
   }
 
   display(context: CanvasRenderingContext2D) {
-    for (let i = 1; i < this.points.length; i++) {
-      this.drawLine(context, this.points[i - 1], this.points[i]);
-    }
+    this.points.reduce((prevPoint, currPoint) => {
+      this.drawLine(context, prevPoint, currPoint);
+      return currPoint;
+    });
   }
 
   drag(x: number, y: number) {
@@ -94,7 +95,7 @@ function startDrawing(e: MouseEvent) {
   lastY = e.offsetY;
   isDrawing = true;
   redoStack = [];
-  currentLine = new Line(lastX, lastY, lineThickness);
+  currentLine = new Line({ x: lastX, y: lastY }, lineThickness);
 }
 
 // canvas event listeners
