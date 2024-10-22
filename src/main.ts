@@ -15,11 +15,11 @@ app.append(canvas);
 const buttonContainer = document.createElement("div");
 app.append(buttonContainer);
 
-createButton("clear", buttonContainer, clearCanvas);
-createButton("undo", buttonContainer, undoLastLine);
-createButton("redo", buttonContainer, redoLastLine);
-const thinButton = createButton("thin", buttonContainer, setThin);
-const thickButton = createButton("thick", buttonContainer, setThick);
+createButton("clear", buttonContainer, onClearClick);
+createButton("undo", buttonContainer, onUndoClick);
+createButton("redo", buttonContainer, onRedoClick);
+const thinButton = createButton("thin", buttonContainer, onThinClick);
+const thickButton = createButton("thick", buttonContainer, onThickClick);
 
 function createButton(
   label: string,
@@ -84,7 +84,6 @@ class ToolPreview implements Displayable {
   }
 
   display(context: CanvasRenderingContext2D) {
-    console.log("tool preview");
     context.beginPath();
     context.arc(
       this.position.x,
@@ -104,8 +103,7 @@ let lines: Displayable[] = [];
 let currentLine: Line | null = null;
 let redoStack: Displayable[] = [];
 let isDrawing = false;
-let lastX = 0;
-let lastY = 0;
+const lastPoint = { x: 0, y: 0 };
 let lineThickness = 1;
 const context = canvas.getContext("2d");
 let toolPreview: ToolPreview | null = null;
@@ -114,23 +112,17 @@ canvas.addEventListener("mousedown", handleMouseDown);
 canvas.addEventListener("mousemove", handleMouseMove);
 document.addEventListener("mouseup", handleMouseUp);
 canvas.addEventListener("drawing-changed", redrawCanvas);
-canvas.addEventListener("tool-moved", handleToolMoved);
+canvas.addEventListener("tool-moved", redrawCanvas);
 
 function handleMouseDown(e: MouseEvent) {
-  lastX = e.offsetX;
-  lastY = e.offsetY;
+  lastPoint.x = e.offsetX;
+  lastPoint.y = e.offsetY;
   isDrawing = true;
   redoStack = [];
-  currentLine = new Line({ x: lastX, y: lastY }, lineThickness);
+  currentLine = new Line({ x: lastPoint.x, y: lastPoint.y }, lineThickness);
 }
 
 // canvas event listeners
-
-function handleToolMoved() {
-  if (!context) return;
-  redrawCanvas();
-  toolPreview?.display(context);
-}
 
 function handleMouseMove(e: MouseEvent) {
   if (!isDrawing) {
@@ -160,10 +152,11 @@ function redrawCanvas() {
     line.display(context);
   });
   currentLine?.display(context);
+  toolPreview?.display(context);
 }
 
 // button event listeners
-function clearCanvas() {
+function onClearClick() {
   if (!context) return;
   context.clearRect(0, 0, canvas.width, canvas.height);
   lines = [];
@@ -171,7 +164,7 @@ function clearCanvas() {
   canvas.dispatchEvent(new Event("drawing-changed"));
 }
 
-function undoLastLine() {
+function onUndoClick() {
   const line = lines.pop();
   if (line) {
     redoStack.push(line);
@@ -179,7 +172,7 @@ function undoLastLine() {
   }
 }
 
-function redoLastLine() {
+function onRedoClick() {
   const line = redoStack.pop();
   if (line) {
     lines.push(line);
@@ -187,12 +180,12 @@ function redoLastLine() {
   }
 }
 
-function setThin() {
+function onThinClick() {
   lineThickness = 1;
   toggleButtonSelection(thinButton);
 }
 
-function setThick() {
+function onThickClick() {
   lineThickness = 5;
   toggleButtonSelection(thickButton);
 }
