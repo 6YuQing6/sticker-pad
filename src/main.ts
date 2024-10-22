@@ -86,9 +86,15 @@ class ToolPreview implements Displayable {
   display(context: CanvasRenderingContext2D) {
     console.log("tool preview");
     context.beginPath();
-    context.arc(this.position.x, this.position.y, 5, 0, Math.PI * 2);
-    context.strokeStyle = "gray";
-    context.lineWidth = 1;
+    context.arc(
+      this.position.x,
+      this.position.y,
+      lineThickness,
+      0,
+      Math.PI * 2
+    );
+    context.strokeStyle = "red";
+    context.lineWidth = 3;
     context.stroke();
     context.closePath();
   }
@@ -104,13 +110,13 @@ let lineThickness = 1;
 const context = canvas.getContext("2d");
 let toolPreview: ToolPreview | null = null;
 
-canvas.addEventListener("mousedown", startDrawing);
-canvas.addEventListener("mousemove", draw);
-document.addEventListener("mouseup", stopDrawing);
+canvas.addEventListener("mousedown", handleMouseDown);
+canvas.addEventListener("mousemove", handleMouseMove);
+document.addEventListener("mouseup", handleMouseUp);
 canvas.addEventListener("drawing-changed", redrawCanvas);
 canvas.addEventListener("tool-moved", handleToolMoved);
 
-function startDrawing(e: MouseEvent) {
+function handleMouseDown(e: MouseEvent) {
   lastX = e.offsetX;
   lastY = e.offsetY;
   isDrawing = true;
@@ -126,7 +132,7 @@ function handleToolMoved() {
   toolPreview?.display(context);
 }
 
-function draw(e: MouseEvent) {
+function handleMouseMove(e: MouseEvent) {
   if (!isDrawing) {
     toolPreview = new ToolPreview({ x: e.offsetX, y: e.offsetY });
     canvas.dispatchEvent(new Event("tool-moved"));
@@ -139,7 +145,7 @@ function draw(e: MouseEvent) {
   }
 }
 
-function stopDrawing() {
+function handleMouseUp() {
   if (!isDrawing || !currentLine) return;
   lines.push(currentLine);
   currentLine = null;
