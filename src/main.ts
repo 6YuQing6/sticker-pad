@@ -76,6 +76,24 @@ class Line implements Displayable {
   }
 }
 
+class ToolPreview implements Displayable {
+  position: Point;
+
+  constructor(position: Point) {
+    this.position = position;
+  }
+
+  display(context: CanvasRenderingContext2D) {
+    console.log("tool preview");
+    context.beginPath();
+    context.arc(this.position.x, this.position.y, 5, 0, Math.PI * 2);
+    context.strokeStyle = "gray";
+    context.lineWidth = 1;
+    context.stroke();
+    context.closePath();
+  }
+}
+
 let lines: Displayable[] = [];
 let currentLine: Line | null = null;
 let redoStack: Displayable[] = [];
@@ -84,12 +102,13 @@ let lastX = 0;
 let lastY = 0;
 let lineThickness = 1;
 const context = canvas.getContext("2d");
+let toolPreview: ToolPreview | null = null;
 
 canvas.addEventListener("mousedown", startDrawing);
 canvas.addEventListener("mousemove", draw);
-canvas.addEventListener("tool-moved", previewTool);
 document.addEventListener("mouseup", stopDrawing);
 canvas.addEventListener("drawing-changed", redrawCanvas);
+canvas.addEventListener("tool-moved", handleToolMoved);
 
 function startDrawing(e: MouseEvent) {
   lastX = e.offsetX;
@@ -101,20 +120,23 @@ function startDrawing(e: MouseEvent) {
 
 // canvas event listeners
 
-function previewTool() {
-  console.log("tool moved but not drawing");
-  return;
+function handleToolMoved() {
+  if (!context) return;
+  redrawCanvas();
+  toolPreview?.display(context);
 }
 
 function draw(e: MouseEvent) {
   if (!isDrawing) {
+    toolPreview = new ToolPreview({ x: e.offsetX, y: e.offsetY });
     canvas.dispatchEvent(new Event("tool-moved"));
-    return;
+  } else {
+    toolPreview = null;
+    const newX = e.offsetX;
+    const newY = e.offsetY;
+    currentLine?.drag(newX, newY);
+    canvas.dispatchEvent(new Event("drawing-changed"));
   }
-  const newX = e.offsetX;
-  const newY = e.offsetY;
-  currentLine?.drag(newX, newY);
-  canvas.dispatchEvent(new Event("drawing-changed"));
 }
 
 function stopDrawing() {
