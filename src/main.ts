@@ -15,10 +15,51 @@ app.append(canvas);
 const buttonContainer = document.createElement("div");
 app.append(buttonContainer);
 
-createButton("clear", buttonContainer, onClearClick);
-createButton("undo", buttonContainer, onUndoClick);
-createButton("redo", buttonContainer, onRedoClick);
+interface Displayable {
+  display(context: CanvasRenderingContext2D): void;
+}
 
+interface Point {
+  x: number;
+  y: number;
+}
+
+let lines: Displayable[] = [];
+let currentLine: Line | null = null;
+let redoStack: Displayable[] = [];
+let isDrawing = false;
+const lastPoint = { x: 0, y: 0 };
+let lineThickness = 1;
+const context = canvas.getContext("2d");
+let toolPreview: ToolPreview | null = null;
+let selectedSticker: Sticker | null = null;
+
+// function buttons
+createButton("clear", buttonContainer, () => {
+  if (!context) return;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  lines = [];
+  redoStack = [];
+  canvas.dispatchEvent(new Event("drawing-changed"));
+});
+
+createButton("undo", buttonContainer, () => {
+  const line = lines.pop();
+  if (line) {
+    redoStack.push(line);
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+});
+
+createButton("redo", buttonContainer, () => {
+  const line = redoStack.pop();
+  if (line) {
+    lines.push(line);
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+});
+
+// tool buttons
 const toolContainer = document.createElement("div");
 app.append(toolContainer);
 
@@ -50,24 +91,12 @@ function createButton(
   return button;
 }
 
-interface Displayable {
-  display(context: CanvasRenderingContext2D): void;
+function toggleButtonSelection(selectedButton: HTMLButtonElement) {
+  const buttons = toolContainer.querySelectorAll("button");
+  buttons.forEach((button) => {
+    button.classList.toggle("selected", button === selectedButton);
+  });
 }
-
-interface Point {
-  x: number;
-  y: number;
-}
-
-let lines: Displayable[] = [];
-let currentLine: Line | null = null;
-let redoStack: Displayable[] = [];
-let isDrawing = false;
-const lastPoint = { x: 0, y: 0 };
-let lineThickness = 1;
-const context = canvas.getContext("2d");
-let toolPreview: ToolPreview | null = null;
-let selectedSticker: Sticker | null = null;
 
 class Line implements Displayable {
   points: Point[];
@@ -138,23 +167,15 @@ class Sticker implements Displayable {
   }
 }
 
-canvas.addEventListener("mousedown", handleMouseDown);
-canvas.addEventListener("mousemove", handleMouseMove);
-document.addEventListener("mouseup", handleMouseUp);
-canvas.addEventListener("drawing-changed", redrawCanvas);
-canvas.addEventListener("tool-moved", redrawCanvas);
-
-function handleMouseDown(e: MouseEvent) {
+canvas.addEventListener("mousedown", (e: MouseEvent) => {
   lastPoint.x = e.offsetX;
   lastPoint.y = e.offsetY;
   isDrawing = true;
   redoStack = [];
   currentLine = new Line({ x: lastPoint.x, y: lastPoint.y }, lineThickness);
-}
+});
 
-// canvas event listeners
-
-function handleMouseMove(e: MouseEvent) {
+canvas.addEventListener("mousemove", (e: MouseEvent) => {
   if (!isDrawing) {
     toolPreview = new ToolPreview({ x: e.offsetX, y: e.offsetY });
     canvas.dispatchEvent(new Event("tool-moved"));
@@ -165,15 +186,18 @@ function handleMouseMove(e: MouseEvent) {
     currentLine?.drag(newX, newY);
     canvas.dispatchEvent(new Event("drawing-changed"));
   }
-}
+});
 
-function handleMouseUp() {
+document.addEventListener("mouseup", () => {
   if (!isDrawing || !currentLine) return;
   lines.push(currentLine);
   currentLine = null;
   isDrawing = false;
   canvas.dispatchEvent(new Event("drawing-changed"));
-}
+});
+
+canvas.addEventListener("drawing-changed", redrawCanvas);
+canvas.addEventListener("tool-moved", redrawCanvas);
 
 function redrawCanvas() {
   if (!context) return;
@@ -183,46 +207,4 @@ function redrawCanvas() {
   });
   currentLine?.display(context);
   toolPreview?.display(context);
-}
-
-// button event listeners
-function onClearClick() {
-  if (!context) return;
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  lines = [];
-  redoStack = [];
-  canvas.dispatchEvent(new Event("drawing-changed"));
-}
-
-function onUndoClick() {
-  const line = lines.pop();
-  if (line) {
-    redoStack.push(line);
-    canvas.dispatchEvent(new Event("drawing-changed"));
-  }
-}
-
-function onRedoClick() {
-  const line = redoStack.pop();
-  if (line) {
-    lines.push(line);
-    canvas.dispatchEvent(new Event("drawing-changed"));
-  }
-}
-
-// function onThinClick() {
-//   lineThickness = 1;
-//   toggleButtonSelection(thinButton);
-// }
-
-// function onThickClick() {
-//   lineThickness = 5;
-//   toggleButtonSelection(thickButton);
-// }
-
-function toggleButtonSelection(selectedButton: HTMLButtonElement) {
-  const buttons = buttonContainer.querySelectorAll("button");
-  buttons.forEach((button) => {
-    button.classList.toggle("selected", button === selectedButton);
-  });
 }
