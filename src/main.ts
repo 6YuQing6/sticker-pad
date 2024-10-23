@@ -18,8 +18,25 @@ app.append(buttonContainer);
 createButton("clear", buttonContainer, onClearClick);
 createButton("undo", buttonContainer, onUndoClick);
 createButton("redo", buttonContainer, onRedoClick);
-const thinButton = createButton("thin", buttonContainer, onThinClick);
-const thickButton = createButton("thick", buttonContainer, onThickClick);
+
+const toolContainer = document.createElement("div");
+app.append(toolContainer);
+
+const thinButton = createButton("thin", toolContainer, () => {
+  lineThickness = 1;
+  toggleButtonSelection(thinButton);
+});
+const thickButton = createButton("thick", toolContainer, () => {
+  lineThickness = 5;
+  toggleButtonSelection(thickButton);
+});
+
+const stickerDisplay: string[] = ["😆", "🍔", "✨"];
+stickerDisplay.forEach((sticker) => {
+  const stickerButton = createButton(`${sticker}`, toolContainer, () => {
+    toggleButtonSelection(stickerButton);
+  });
+});
 
 function createButton(
   label: string,
@@ -41,6 +58,16 @@ interface Point {
   x: number;
   y: number;
 }
+
+let lines: Displayable[] = [];
+let currentLine: Line | null = null;
+let redoStack: Displayable[] = [];
+let isDrawing = false;
+const lastPoint = { x: 0, y: 0 };
+let lineThickness = 1;
+const context = canvas.getContext("2d");
+let toolPreview: ToolPreview | null = null;
+let selectedSticker: Sticker | null = null;
 
 class Line implements Displayable {
   points: Point[];
@@ -99,14 +126,17 @@ class ToolPreview implements Displayable {
   }
 }
 
-let lines: Displayable[] = [];
-let currentLine: Line | null = null;
-let redoStack: Displayable[] = [];
-let isDrawing = false;
-const lastPoint = { x: 0, y: 0 };
-let lineThickness = 1;
-const context = canvas.getContext("2d");
-let toolPreview: ToolPreview | null = null;
+class Sticker implements Displayable {
+  position: Point;
+  text: string;
+  constructor(position: Point, text: string) {
+    this.position = position;
+    this.text = text;
+  }
+  display(context: CanvasRenderingContext2D): void {
+    context.fillText(this.text, this.position.x, this.position.y);
+  }
+}
 
 canvas.addEventListener("mousedown", handleMouseDown);
 canvas.addEventListener("mousemove", handleMouseMove);
@@ -180,15 +210,15 @@ function onRedoClick() {
   }
 }
 
-function onThinClick() {
-  lineThickness = 1;
-  toggleButtonSelection(thinButton);
-}
+// function onThinClick() {
+//   lineThickness = 1;
+//   toggleButtonSelection(thinButton);
+// }
 
-function onThickClick() {
-  lineThickness = 5;
-  toggleButtonSelection(thickButton);
-}
+// function onThickClick() {
+//   lineThickness = 5;
+//   toggleButtonSelection(thickButton);
+// }
 
 function toggleButtonSelection(selectedButton: HTMLButtonElement) {
   const buttons = buttonContainer.querySelectorAll("button");
