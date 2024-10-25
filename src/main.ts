@@ -17,6 +17,7 @@ app.append(buttonContainer);
 
 interface Displayable {
   display(context: CanvasRenderingContext2D): void;
+  drag(point: Point): void;
 }
 
 interface Point {
@@ -25,7 +26,6 @@ interface Point {
 }
 
 let displayList: Displayable[] = [];
-let currentLine: Line | null = null;
 let redoStack: Displayable[] = [];
 let isDrawing = false;
 const lastPoint = { x: 0, y: 0 };
@@ -35,8 +35,8 @@ if (!context) {
   throw new Error("Failed to get 2D context");
 }
 let toolPreview: ToolPreview | null = null;
-let currentSticker: Sticker | null = null;
 let selectedSticker: string | undefined = undefined;
+let currentDisplayItem: Displayable | null = null; // Unified variable
 
 // function buttons
 createButton("clear", buttonContainer, () => {
@@ -44,7 +44,7 @@ createButton("clear", buttonContainer, () => {
   displayList = [];
   redoStack = [];
   canvas.dispatchEvent(new Event("drawing-changed"));
-  currentSticker = null;
+  currentDisplayItem = null;
 });
 
 createButton("undo", buttonContainer, () => {
@@ -72,13 +72,13 @@ app.append(toolContainer);
 const thinButton = createButton("thin", toolContainer, () => {
   lineThickness = 1;
   toggleButtonSelection(thinButton);
-  currentSticker = null;
+  currentDisplayItem = null;
   selectedSticker = "";
 });
 const thickButton = createButton("thick", toolContainer, () => {
   lineThickness = 5;
   toggleButtonSelection(thickButton);
-  currentSticker = null;
+  currentDisplayItem = null;
   selectedSticker = "";
 });
 
@@ -173,6 +173,10 @@ class ToolPreview implements Displayable {
       context.closePath();
     }
   }
+  drag(point: Point): void {
+    this.position.x = point.x;
+    this.position.y = point.y;
+  }
 }
 
 class Sticker implements Displayable {
@@ -203,12 +207,15 @@ canvas.addEventListener("mousedown", (e: MouseEvent) => {
   isDrawing = true;
   redoStack = [];
   if (selectedSticker) {
-    currentSticker = new Sticker(
+    currentDisplayItem = new Sticker(
       { x: lastPoint.x, y: lastPoint.y },
       selectedSticker
     );
   } else {
-    currentLine = new Line({ x: lastPoint.x, y: lastPoint.y }, lineThickness);
+    currentDisplayItem = new Line(
+      { x: lastPoint.x, y: lastPoint.y },
+      lineThickness
+    );
   }
   canvas.dispatchEvent(new Event("drawing-changed"));
 });
@@ -225,27 +232,15 @@ canvas.addEventListener("mousemove", (e: MouseEvent) => {
     // when drawing the tool preview will disappear
     toolPreview = null;
     const newPoint: Point = { x: e.offsetX, y: e.offsetY };
-    if (currentSticker) {
-      currentSticker?.drag(newPoint);
-      canvas.dispatchEvent(new Event("tool-moved"));
-    } else {
-      currentLine?.drag(newPoint);
-      canvas.dispatchEvent(new Event("drawing-changed"));
-    }
+    currentDisplayItem?.drag(newPoint);
+    canvas.dispatchEvent(new Event("tool-moved"));
   }
 });
 
 document.addEventListener("mouseup", () => {
   if (!isDrawing) return;
-  if (currentSticker) {
-    displayList.push(currentSticker);
-    currentSticker = null;
-  } else {
-    if (!currentLine) return;
-    displayList.push(currentLine);
-    currentLine = null;
-  }
-
+  if (currentDisplayItem) displayList.push(currentDisplayItem);
+  currentDisplayItem = null;
   isDrawing = false;
   canvas.dispatchEvent(new Event("drawing-changed"));
 });
@@ -255,8 +250,7 @@ const redrawCanvas = () => {
   displayList.forEach((displayable) => {
     displayable.display(context);
   });
-  currentLine?.display(context); // to show current line drawn when mouse is moving
-  currentSticker?.display(context);
+  currentDisplayItem?.display(context);
   toolPreview?.display(context);
 };
 
