@@ -33,6 +33,7 @@ let lineThickness = 1;
 const context = canvas.getContext("2d");
 let toolPreview: ToolPreview | null = null;
 let selectedSticker: Sticker | null = null;
+let currentSticker: string | undefined = undefined;
 
 // function buttons
 createButton("clear", buttonContainer, () => {
@@ -41,6 +42,7 @@ createButton("clear", buttonContainer, () => {
   lines = [];
   redoStack = [];
   canvas.dispatchEvent(new Event("drawing-changed"));
+  selectedSticker = null;
 });
 
 createButton("undo", buttonContainer, () => {
@@ -66,16 +68,21 @@ app.append(toolContainer);
 const thinButton = createButton("thin", toolContainer, () => {
   lineThickness = 1;
   toggleButtonSelection(thinButton);
+  selectedSticker = null;
+  currentSticker = "";
 });
 const thickButton = createButton("thick", toolContainer, () => {
   lineThickness = 5;
   toggleButtonSelection(thickButton);
+  selectedSticker = null;
+  currentSticker = "";
 });
 
 const stickerDisplay: string[] = ["😆", "🍔", "✨"];
 stickerDisplay.forEach((sticker) => {
   const stickerButton = createButton(`${sticker}`, toolContainer, () => {
     toggleButtonSelection(stickerButton);
+    currentSticker = `${sticker}`;
   });
 });
 
@@ -113,8 +120,8 @@ class Line implements Displayable {
     });
   }
 
-  drag(x: number, y: number) {
-    this.points.push({ x, y });
+  drag(point: Point) {
+    this.points.push({ x: point.x, y: point.y });
   }
 
   private drawLine(
@@ -134,24 +141,33 @@ class Line implements Displayable {
 
 class ToolPreview implements Displayable {
   position: Point;
+  text: string;
 
-  constructor(position: Point) {
+  constructor(position: Point, text: string = "") {
     this.position = position;
+    this.text = text;
   }
 
   display(context: CanvasRenderingContext2D) {
-    context.beginPath();
-    context.arc(
-      this.position.x,
-      this.position.y,
-      lineThickness,
-      0,
-      Math.PI * 2
-    );
-    context.strokeStyle = "red";
-    context.lineWidth = 3;
-    context.stroke();
-    context.closePath();
+    if (this.text) {
+      // for sticker preview
+      context.font = "32px monospace";
+      context.fillText(this.text, this.position.x, this.position.y);
+    } else {
+      // for line width preiew, draws a circle
+      context.beginPath();
+      context.arc(
+        this.position.x,
+        this.position.y,
+        lineThickness,
+        0,
+        Math.PI * 2
+      );
+      context.strokeStyle = "red";
+      context.lineWidth = 3;
+      context.stroke();
+      context.closePath();
+    }
   }
 }
 
@@ -163,48 +179,91 @@ class Sticker implements Displayable {
     this.text = text;
   }
   display(context: CanvasRenderingContext2D): void {
+    context.font = "32px monospace";
     context.fillText(this.text, this.position.x, this.position.y);
+  }
+  drag(point: Point) {
+    this.position.x = point.x;
+    this.position.y = point.y;
   }
 }
 
 canvas.addEventListener("mousedown", (e: MouseEvent) => {
+  console.log("mouse-down");
   lastPoint.x = e.offsetX;
   lastPoint.y = e.offsetY;
   isDrawing = true;
   redoStack = [];
-  currentLine = new Line({ x: lastPoint.x, y: lastPoint.y }, lineThickness);
+  console.log(currentSticker);
+  if (currentSticker) {
+    console.log("making sticker");
+    selectedSticker = new Sticker(
+      { x: lastPoint.x, y: lastPoint.y },
+      currentSticker
+    );
+  } else {
+    currentLine = new Line({ x: lastPoint.x, y: lastPoint.y }, lineThickness);
+  }
+  canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 canvas.addEventListener("mousemove", (e: MouseEvent) => {
   if (!isDrawing) {
-    toolPreview = new ToolPreview({ x: e.offsetX, y: e.offsetY });
+    toolPreview = new ToolPreview(
+      { x: e.offsetX, y: e.offsetY },
+      currentSticker
+    );
     canvas.dispatchEvent(new Event("tool-moved"));
   } else {
     toolPreview = null;
-    const newX = e.offsetX;
-    const newY = e.offsetY;
-    currentLine?.drag(newX, newY);
-    canvas.dispatchEvent(new Event("drawing-changed"));
+    const newPoint: Point = { x: e.offsetX, y: e.offsetY };
+    console.log(selectedSticker);
+    if (selectedSticker) {
+      console.log("dragging sticker");
+      selectedSticker?.drag(newPoint);
+      canvas.dispatchEvent(new Event("tool-moved"));
+    } else {
+      console.log("dragging line");
+      currentLine?.drag(newPoint);
+      canvas.dispatchEvent(new Event("drawing-changed"));
+    }
   }
 });
 
 document.addEventListener("mouseup", () => {
-  if (!isDrawing || !currentLine) return;
-  lines.push(currentLine);
-  currentLine = null;
+  console.log("mouse-up");
+  console.log(isDrawing, currentLine);
+  if (!isDrawing) return;
+  console.log(selectedSticker);
+  if (selectedSticker) {
+    console.log("selected sticker");
+    lines.push(selectedSticker);
+  } else {
+    if (!currentLine) return;
+    console.log("current line");
+    lines.push(currentLine);
+    currentLine = null;
+  }
+
   isDrawing = false;
   canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 canvas.addEventListener("drawing-changed", redrawCanvas);
-canvas.addEventListener("tool-moved", redrawCanvas);
+canvas.addEventListener("tool-moved", () => {
+  if (!context) return;
+  redrawCanvas();
+  toolPreview?.display(context);
+});
 
 function redrawCanvas() {
+  console.log("drawinig-changed");
   if (!context) return;
+  console.log(lines);
   context.clearRect(0, 0, canvas.width, canvas.height);
   lines.forEach((line) => {
     line.display(context);
   });
   currentLine?.display(context);
-  toolPreview?.display(context);
+  selectedSticker?.display(context);
 }
