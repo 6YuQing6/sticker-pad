@@ -24,31 +24,34 @@ interface Point {
   y: number;
 }
 
-let lines: Displayable[] = [];
+let displayList: Displayable[] = [];
 let currentLine: Line | null = null;
 let redoStack: Displayable[] = [];
 let isDrawing = false;
 const lastPoint = { x: 0, y: 0 };
 let lineThickness = 1;
 const context = canvas.getContext("2d");
+if (!context) {
+  throw new Error("Failed to get 2D context");
+}
 let toolPreview: ToolPreview | null = null;
-let selectedSticker: Sticker | null = null;
-let currentSticker: string | undefined = undefined;
+let currentSticker: Sticker | null = null;
+let selectedSticker: string | undefined = undefined;
 
 // function buttons
 createButton("clear", buttonContainer, () => {
-  if (!context) return;
   context.clearRect(0, 0, canvas.width, canvas.height);
-  lines = [];
+  displayList = [];
   redoStack = [];
   canvas.dispatchEvent(new Event("drawing-changed"));
-  selectedSticker = null;
+  currentSticker = null;
 });
 
 createButton("undo", buttonContainer, () => {
-  const line = lines.pop();
+  const line = displayList.pop();
   if (line) {
     redoStack.push(line);
+    console.log(redoStack);
     canvas.dispatchEvent(new Event("drawing-changed"));
   }
 });
@@ -56,7 +59,8 @@ createButton("undo", buttonContainer, () => {
 createButton("redo", buttonContainer, () => {
   const line = redoStack.pop();
   if (line) {
-    lines.push(line);
+    displayList.push(line);
+    console.log(displayList);
     canvas.dispatchEvent(new Event("drawing-changed"));
   }
 });
@@ -68,21 +72,21 @@ app.append(toolContainer);
 const thinButton = createButton("thin", toolContainer, () => {
   lineThickness = 1;
   toggleButtonSelection(thinButton);
-  selectedSticker = null;
-  currentSticker = "";
+  currentSticker = null;
+  selectedSticker = "";
 });
 const thickButton = createButton("thick", toolContainer, () => {
   lineThickness = 5;
   toggleButtonSelection(thickButton);
-  selectedSticker = null;
-  currentSticker = "";
+  currentSticker = null;
+  selectedSticker = "";
 });
 
 const stickerDisplay: string[] = ["😆", "🍔", "✨"];
 stickerDisplay.forEach((sticker) => {
   const stickerButton = createButton(`${sticker}`, toolContainer, () => {
     toggleButtonSelection(stickerButton);
-    currentSticker = `${sticker}`;
+    selectedSticker = `${sticker}`;
   });
 });
 
@@ -188,18 +192,20 @@ class Sticker implements Displayable {
   }
 }
 
+canvas.addEventListener("mouseleave", () => {
+  toolPreview = null;
+  redrawCanvas();
+});
+
 canvas.addEventListener("mousedown", (e: MouseEvent) => {
-  console.log("mouse-down");
   lastPoint.x = e.offsetX;
   lastPoint.y = e.offsetY;
   isDrawing = true;
   redoStack = [];
-  console.log(currentSticker);
-  if (currentSticker) {
-    console.log("making sticker");
-    selectedSticker = new Sticker(
+  if (selectedSticker) {
+    currentSticker = new Sticker(
       { x: lastPoint.x, y: lastPoint.y },
-      currentSticker
+      selectedSticker
     );
   } else {
     currentLine = new Line({ x: lastPoint.x, y: lastPoint.y }, lineThickness);
@@ -209,21 +215,20 @@ canvas.addEventListener("mousedown", (e: MouseEvent) => {
 
 canvas.addEventListener("mousemove", (e: MouseEvent) => {
   if (!isDrawing) {
+    // creates new tool preview of selected tool
     toolPreview = new ToolPreview(
       { x: e.offsetX, y: e.offsetY },
-      currentSticker
+      selectedSticker
     );
     canvas.dispatchEvent(new Event("tool-moved"));
   } else {
+    // when drawing the tool preview will disappear
     toolPreview = null;
     const newPoint: Point = { x: e.offsetX, y: e.offsetY };
-    console.log(selectedSticker);
-    if (selectedSticker) {
-      console.log("dragging sticker");
-      selectedSticker?.drag(newPoint);
+    if (currentSticker) {
+      currentSticker?.drag(newPoint);
       canvas.dispatchEvent(new Event("tool-moved"));
     } else {
-      console.log("dragging line");
       currentLine?.drag(newPoint);
       canvas.dispatchEvent(new Event("drawing-changed"));
     }
@@ -231,17 +236,13 @@ canvas.addEventListener("mousemove", (e: MouseEvent) => {
 });
 
 document.addEventListener("mouseup", () => {
-  console.log("mouse-up");
-  console.log(isDrawing, currentLine);
   if (!isDrawing) return;
-  console.log(selectedSticker);
-  if (selectedSticker) {
-    console.log("selected sticker");
-    lines.push(selectedSticker);
+  if (currentSticker) {
+    displayList.push(currentSticker);
+    currentSticker = null;
   } else {
     if (!currentLine) return;
-    console.log("current line");
-    lines.push(currentLine);
+    displayList.push(currentLine);
     currentLine = null;
   }
 
@@ -249,21 +250,15 @@ document.addEventListener("mouseup", () => {
   canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
-canvas.addEventListener("drawing-changed", redrawCanvas);
-canvas.addEventListener("tool-moved", () => {
-  if (!context) return;
-  redrawCanvas();
-  toolPreview?.display(context);
-});
-
-function redrawCanvas() {
-  console.log("drawinig-changed");
-  if (!context) return;
-  console.log(lines);
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  lines.forEach((line) => {
-    line.display(context);
+const redrawCanvas = () => {
+  context?.clearRect(0, 0, canvas.width, canvas.height);
+  displayList.forEach((displayable) => {
+    displayable.display(context);
   });
-  currentLine?.display(context);
-  selectedSticker?.display(context);
-}
+  currentLine?.display(context); // to show current line drawn when mouse is moving
+  currentSticker?.display(context);
+  toolPreview?.display(context);
+};
+
+canvas.addEventListener("drawing-changed", redrawCanvas);
+canvas.addEventListener("tool-moved", redrawCanvas);
