@@ -51,7 +51,6 @@ createButton("undo", buttonContainer, () => {
   const line = displayList.pop();
   if (line) {
     redoStack.push(line);
-    console.log(redoStack);
     canvas.dispatchEvent(new Event("drawing-changed"));
   }
 });
@@ -60,7 +59,6 @@ createButton("redo", buttonContainer, () => {
   const line = redoStack.pop();
   if (line) {
     displayList.push(line);
-    console.log(displayList);
     canvas.dispatchEvent(new Event("drawing-changed"));
   }
 });
@@ -75,6 +73,7 @@ const thinButton = createButton("thin", toolContainer, () => {
   currentDisplayItem = null;
   selectedSticker = "";
 });
+thinButton.className = "selected";
 const thickButton = createButton("thick", toolContainer, () => {
   lineThickness = 5;
   toggleButtonSelection(thickButton);
@@ -173,10 +172,7 @@ class ToolPreview implements Displayable {
       context.closePath();
     }
   }
-  drag(point: Point): void {
-    this.position.x = point.x;
-    this.position.y = point.y;
-  }
+  drag(): void {}
 }
 
 class Sticker implements Displayable {
