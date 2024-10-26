@@ -63,6 +63,30 @@ createButton("redo", buttonContainer, () => {
   }
 });
 
+createButton("export", buttonContainer, () => {
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = 1024;
+  exportCanvas.height = 1024;
+  const exportContext = exportCanvas.getContext("2d");
+  if (!exportContext) {
+    throw new Error("Failed to get 2D context for export canvas");
+  }
+
+  // Scales content to match larger canvas
+  exportContext.scale(4, 4);
+
+  // Execute display list items on the new context
+  displayList.forEach((displayable) => {
+    displayable.display(exportContext);
+  });
+
+  // Trigger file download
+  const anchor = document.createElement("a");
+  anchor.href = exportCanvas.toDataURL("image/png");
+  anchor.download = "sketchpad.png";
+  anchor.click();
+});
+
 // tool buttons
 const toolContainer = document.createElement("div");
 app.append(toolContainer);
@@ -88,7 +112,7 @@ const createStickerButton = (text: string, container: HTMLElement) => {
   });
 };
 
-createButton("Custom Sticker", toolContainer, () => {
+createButton("+", toolContainer, () => {
   const text = globalThis.prompt("Custom sticker prompt", "❤️");
   if (text) {
     createStickerButton(text, toolContainer);
