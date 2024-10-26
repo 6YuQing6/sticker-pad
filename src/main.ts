@@ -81,22 +81,23 @@ const thickButton = createButton("thick", toolContainer, () => {
   selectedSticker = "";
 });
 
+const createStickerButton = (text: string, container: HTMLElement) => {
+  const stickerButton = createButton(text, container, () => {
+    toggleButtonSelection(stickerButton);
+    selectedSticker = text;
+  });
+};
+
 createButton("Custom Sticker", toolContainer, () => {
   const text = globalThis.prompt("Custom sticker prompt", "❤️");
   if (text) {
-    const stickerButton = createButton(`${text}`, toolContainer, () => {
-      toggleButtonSelection(stickerButton);
-      selectedSticker = `${text}`;
-    });
+    createStickerButton(text, toolContainer);
   }
 });
 
 const stickerDisplay: string[] = ["😆", "🍔", "✨"];
 stickerDisplay.forEach((sticker) => {
-  const stickerButton = createButton(`${sticker}`, toolContainer, () => {
-    toggleButtonSelection(stickerButton);
-    selectedSticker = `${sticker}`;
-  });
+  createStickerButton(sticker, toolContainer);
 });
 
 function createButton(
