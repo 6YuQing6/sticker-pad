@@ -151,60 +151,6 @@ function toggleButtonSelection(selectedButton: HTMLButtonElement) {
   });
 }
 
-// Button creation
-createButton("clear", buttonContainer, () => {
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  displayStack = [];
-  redoStack = [];
-  canvas.dispatchEvent(new Event("drawing-changed"));
-  currentDisplayItem = null;
-});
-
-createButton("undo", buttonContainer, () => {
-  const line = displayStack.pop();
-  if (line) {
-    redoStack.push(line);
-    canvas.dispatchEvent(new Event("drawing-changed"));
-  }
-});
-
-createButton("redo", buttonContainer, () => {
-  const line = redoStack.pop();
-  if (line) {
-    displayStack.push(line);
-    canvas.dispatchEvent(new Event("drawing-changed"));
-  }
-});
-
-const exportDialog = document.getElementById(
-  "exportDialog"
-) as HTMLDialogElement;
-const transparentButton = document.getElementById(
-  "transparent"
-) as HTMLButtonElement;
-const closeDialogButton = document.getElementById(
-  "closeDialog"
-) as HTMLButtonElement;
-
-const opaqueButton = document.getElementById("opaque") as HTMLButtonElement;
-
-// Add event listener to export button
-createButton("export", buttonContainer, () => {
-  exportDialog.showModal();
-});
-
-transparentButton.addEventListener("click", () => {
-  exportCanvas(true);
-});
-
-opaqueButton.addEventListener("click", () => {
-  exportCanvas(false);
-});
-
-closeDialogButton.addEventListener("click", () => {
-  exportDialog.close();
-});
-
 function exportCanvas(isTransparent: boolean) {
   const exportCanvas = document.createElement("canvas");
   exportCanvas.width = 1024;
@@ -237,31 +183,60 @@ function exportCanvas(isTransparent: boolean) {
   exportDialog.close();
 }
 
-// createButton("export", buttonContainer, () => {
-//   const exportCanvas = document.createElement("canvas");
-//   exportCanvas.width = 1024;
-//   exportCanvas.height = 1024;
-//   const exportContext = exportCanvas.getContext("2d")!;
-//   exportContext.fillStyle = "oklch(95.33% 0.0897 99)";
-//   exportContext.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-//   if (!exportContext) {
-//     throw new Error("Failed to get 2D context for export canvas");
-//   }
+// Button creation
+createButton("clear", buttonContainer, () => {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  displayStack = [];
+  redoStack = [];
+  canvas.dispatchEvent(new Event("drawing-changed"));
+  currentDisplayItem = null;
+});
 
-//   // Scales content to match larger canvas
-//   exportContext.scale(4, 4);
+createButton("undo", buttonContainer, () => {
+  const line = displayStack.pop();
+  if (line) {
+    redoStack.push(line);
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+});
 
-//   // Execute display list items on the new context
-//   displayStack.forEach((displayable) => {
-//     displayable.display(exportContext);
-//   });
+createButton("redo", buttonContainer, () => {
+  const line = redoStack.pop();
+  if (line) {
+    displayStack.push(line);
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+});
 
-//   // Trigger file download
-//   const anchor = document.createElement("a");
-//   anchor.href = exportCanvas.toDataURL("image/png");
-//   anchor.download = "sketchpad.png";
-//   anchor.click();
-// });
+// export button
+const exportDialog = document.getElementById(
+  "exportDialog"
+) as HTMLDialogElement;
+const transparentButton = document.getElementById(
+  "transparent"
+) as HTMLButtonElement;
+const closeDialogButton = document.getElementById(
+  "closeDialog"
+) as HTMLButtonElement;
+
+const opaqueButton = document.getElementById("opaque") as HTMLButtonElement;
+
+// Add event listener to model dialog export setting buttons
+createButton("export", buttonContainer, () => {
+  exportDialog.showModal();
+});
+
+transparentButton.addEventListener("click", () => {
+  exportCanvas(true);
+});
+
+opaqueButton.addEventListener("click", () => {
+  exportCanvas(false);
+});
+
+closeDialogButton.addEventListener("click", () => {
+  exportDialog.close();
+});
 
 const thinButton = createButton("thin", toolContainer, () => {
   lineThickness = THIN_LINE;
