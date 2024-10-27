@@ -9,8 +9,26 @@
     <div id="app">
       <h1>Sticky Pad</h1>
       <div id="buttonContainer"></div>
+      <div>
+        <input type="range" id="H" min="0" max="360" value="0" step="1" />
+      </div>
       <div id="toolContainer"></div>
     </div>
+
+    <!-- Modal Dialog -->
+    <dialog id="exportDialog">
+      <form method="dialog">
+        <div>
+          <button id="closeDialog" type="button">X</button>
+        </div>
+        <p>Do you want the background to be transparent?</p>
+        <menu>
+          <button id="transparent">Yes</button>
+          <button id="opaque">No</button>
+        </menu>
+      </form>
+    </dialog>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

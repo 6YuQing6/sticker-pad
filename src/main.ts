@@ -39,7 +39,11 @@ if (!context) {
 }
 
 // Displayable functions
-function createLine(point: Point, thickness: number): Displayable {
+function createLine(
+  point: Point,
+  thickness: number,
+  color: string
+): Displayable {
   const points: Point[] = [point];
 
   function display(context: CanvasRenderingContext2D) {
@@ -53,14 +57,13 @@ function createLine(point: Point, thickness: number): Displayable {
   function drag(point: Point) {
     points.push({ x: point.x, y: point.y });
   }
-
   function drawLine(
     context: CanvasRenderingContext2D,
     start: Point,
     end: Point
   ) {
     context.beginPath();
-    context.strokeStyle = "black";
+    context.strokeStyle = color;
     context.lineWidth = thickness;
     context.moveTo(start.x, start.y);
     context.lineTo(end.x, end.y);
@@ -69,6 +72,20 @@ function createLine(point: Point, thickness: number): Displayable {
   }
 
   return { display, drag };
+}
+
+const H = document.getElementById("H") as HTMLInputElement;
+// Function to apply the color to the slider background
+function updateSliderColor() {
+  const color = valuetoRGB();
+  H.style.background = color; // Apply color to the slider background
+}
+
+// Add event listener to update color on slider input
+H.addEventListener("input", updateSliderColor);
+
+function valuetoRGB(): string {
+  return `hsl(${H.value}, 100%, ${H.value == "0" ? "0%" : "50%"})`;
 }
 
 function createToolPreview(position: Point, text: string = ""): Displayable {
@@ -81,7 +98,7 @@ function createToolPreview(position: Point, text: string = ""): Displayable {
       // for line width preview, draws a circle
       context.beginPath();
       context.arc(position.x, position.y, lineThickness, 0, Math.PI * 2);
-      context.strokeStyle = "red";
+      context.strokeStyle = valuetoRGB();
       context.lineWidth = 3;
       context.stroke();
       context.closePath();
@@ -159,13 +176,47 @@ createButton("redo", buttonContainer, () => {
   }
 });
 
+const exportDialog = document.getElementById(
+  "exportDialog"
+) as HTMLDialogElement;
+const transparentButton = document.getElementById(
+  "transparent"
+) as HTMLButtonElement;
+const closeDialogButton = document.getElementById(
+  "closeDialog"
+) as HTMLButtonElement;
+
+const opaqueButton = document.getElementById("opaque") as HTMLButtonElement;
+
+// Add event listener to export button
 createButton("export", buttonContainer, () => {
+  exportDialog.showModal();
+});
+
+transparentButton.addEventListener("click", () => {
+  exportCanvas(true);
+});
+
+opaqueButton.addEventListener("click", () => {
+  exportCanvas(false);
+});
+
+closeDialogButton.addEventListener("click", () => {
+  exportDialog.close();
+});
+
+function exportCanvas(isTransparent: boolean) {
   const exportCanvas = document.createElement("canvas");
   exportCanvas.width = 1024;
   exportCanvas.height = 1024;
-  const exportContext = exportCanvas.getContext("2d");
+  const exportContext = exportCanvas.getContext("2d")!;
   if (!exportContext) {
     throw new Error("Failed to get 2D context for export canvas");
+  }
+
+  if (!isTransparent) {
+    exportContext.fillStyle = "oklch(95.33% 0.0897 99)";
+    exportContext.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
   }
 
   // Scales content to match larger canvas
@@ -181,7 +232,36 @@ createButton("export", buttonContainer, () => {
   anchor.href = exportCanvas.toDataURL("image/png");
   anchor.download = "sketchpad.png";
   anchor.click();
-});
+
+  // Close the dialog
+  exportDialog.close();
+}
+
+// createButton("export", buttonContainer, () => {
+//   const exportCanvas = document.createElement("canvas");
+//   exportCanvas.width = 1024;
+//   exportCanvas.height = 1024;
+//   const exportContext = exportCanvas.getContext("2d")!;
+//   exportContext.fillStyle = "oklch(95.33% 0.0897 99)";
+//   exportContext.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+//   if (!exportContext) {
+//     throw new Error("Failed to get 2D context for export canvas");
+//   }
+
+//   // Scales content to match larger canvas
+//   exportContext.scale(4, 4);
+
+//   // Execute display list items on the new context
+//   displayStack.forEach((displayable) => {
+//     displayable.display(exportContext);
+//   });
+
+//   // Trigger file download
+//   const anchor = document.createElement("a");
+//   anchor.href = exportCanvas.toDataURL("image/png");
+//   anchor.download = "sketchpad.png";
+//   anchor.click();
+// });
 
 const thinButton = createButton("thin", toolContainer, () => {
   lineThickness = THIN_LINE;
@@ -227,7 +307,8 @@ canvas.addEventListener("mousedown", (e: MouseEvent) => {
   } else {
     currentDisplayItem = createLine(
       { x: lastPoint.x, y: lastPoint.y },
-      lineThickness
+      lineThickness,
+      valuetoRGB()
     );
   }
   canvas.dispatchEvent(new Event("drawing-changed"));
