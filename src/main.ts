@@ -38,6 +38,20 @@ if (!context) {
   throw new Error("Failed to get 2D context");
 }
 
+let currentColor = "#000000";
+const colorPicker = document.getElementById("picker") as HTMLInputElement;
+colorPicker.type = "color";
+colorPicker.value = currentColor;
+colorPicker.style.margin = "10px";
+app.append(colorPicker);
+
+colorPicker.addEventListener("input", (e) => {
+  const target = e.target as HTMLInputElement | null;
+  if (target) {
+    currentColor = target.value;
+  }
+});
+
 // Displayable functions
 function createLine(
   point: Point,
@@ -74,20 +88,6 @@ function createLine(
   return { display, drag };
 }
 
-const H = document.getElementById("H") as HTMLInputElement;
-// Function to apply the color to the slider background
-function updateSliderColor() {
-  const color = valuetoRGB();
-  H.style.background = color; // Apply color to the slider background
-}
-
-// Add event listener to update color on slider input
-H.addEventListener("input", updateSliderColor);
-
-function valuetoRGB(): string {
-  return `hsl(${H.value}, 100%, ${H.value == "0" ? "0%" : "50%"})`;
-}
-
 function createToolPreview(position: Point, text: string = ""): Displayable {
   function display(context: CanvasRenderingContext2D) {
     if (text) {
@@ -98,7 +98,7 @@ function createToolPreview(position: Point, text: string = ""): Displayable {
       // for line width preview, draws a circle
       context.beginPath();
       context.arc(position.x, position.y, lineThickness, 0, Math.PI * 2);
-      context.strokeStyle = valuetoRGB();
+      context.strokeStyle = currentColor;
       context.lineWidth = 3;
       context.stroke();
       context.closePath();
@@ -283,7 +283,7 @@ canvas.addEventListener("mousedown", (e: MouseEvent) => {
     currentDisplayItem = createLine(
       { x: lastPoint.x, y: lastPoint.y },
       lineThickness,
-      valuetoRGB()
+      currentColor
     );
   }
   canvas.dispatchEvent(new Event("drawing-changed"));
