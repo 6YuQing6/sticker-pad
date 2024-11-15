@@ -192,21 +192,15 @@ createButton("clear", buttonContainer, () => {
   currentDisplayItem = null;
 });
 
-createButton("undo", buttonContainer, () => {
-  const line = displayStack.pop();
-  if (line) {
-    redoStack.push(line);
-    canvas.dispatchEvent(new Event("drawing-changed"));
+function undoRedo(remove: Displayable[], add: Displayable[]) {
+  const removedLine = remove.pop();
+  if(removedLine) {
+      add.push(removedLine); 
+      canvas.dispatchEvent(new Event("drawing-changed"));
   }
-});
-
-createButton("redo", buttonContainer, () => {
-  const line = redoStack.pop();
-  if (line) {
-    displayStack.push(line);
-    canvas.dispatchEvent(new Event("drawing-changed"));
-  }
-});
+}
+createButton("undo", buttonContainer, () => undoRedo(displayStack, redoStack));
+createButton("redo", buttonContainer, () => undoRedo(redoStack, displayStack));
 
 // export button
 const exportDialog = document.getElementById(
