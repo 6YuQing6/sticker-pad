@@ -39,7 +39,7 @@ if (!context) {
 }
 
 let currentColor = "#000000";
-const colorPicker = document.createElement("input");
+const colorPicker = document.getElementById("picker") as HTMLInputElement;
 colorPicker.type = "color";
 colorPicker.value = currentColor;
 colorPicker.style.margin = "10px";
